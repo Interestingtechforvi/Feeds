@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kuldeep's AI Assistant API - Complete Interface</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .tab {
+            padding: 15px 25px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            color: #007bff;
+            border-bottom-color: #007bff;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .chat-container {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            min-height: 300px;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 2px solid #e9ecef;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+
+        .user-message {
+            background: #007bff;
+            color: white;
+            margin-left: auto;
+            text-align: right;
+        }
+
+        .ai-message {
+            background: #e9ecef;
+            color: #333;
+            margin-right: auto;
+        }
+
+        .input-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .input-field {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .input-field:focus {
+            border-color: #007bff;
+        }
+
+        .send-button {
+            padding: 15px 25px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .send-button:hover {
+            background: #0056b3;
+        }
+
+        .send-button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: #666;
+            font-style: italic;
+        }
+
+        .api-info {
+            background: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .api-info h3 {
+            color: #0066cc;
+            margin-bottom: 10px;
+        }
+
+        .api-info code {
+            background: #f1f1f1;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .file-upload {
+            margin-bottom: 20px;
+        }
+
+        .file-input {
+            margin-bottom: 10px;
+        }
+
+        .tts-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .form-group select, .form-group textarea {
+            padding: 10px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .examples {
+            margin-top: 20px;
+        }
+
+        .examples h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .example-button {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+
+        .example-button:hover {
+            background: #e9ecef;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .feature-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #e9ecef;
+        }
+
+        .feature-card h3 {
+            color: #007bff;
+            margin-bottom: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .tabs {
+                flex-wrap: wrap;
+            }
+
+            .tab {
+                flex: 1;
+                min-width: 120px;
+            }
+
+            .tts-controls {
+                grid-template-columns: 1fr;
+            }
+
+            .input-container {
+                flex-direction: column;
+            }
+
+            .send-button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Kuldeep's AI Assistant API</h1>
+            <p>Powered by Gemini AI with intelligent routing and multimodal capabilities</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('chat')">💬 Chat</button>
+            <button class="tab" onclick="showTab('tts')">🎵 Text-to-Speech</button>
+            <button class="tab" onclick="showTab('upload')">📁 File Upload</button>
+            <button class="tab" onclick="showTab('api')">📡 API Docs</button>
+        </div>
+
+        <!-- Chat Tab -->
+        <div id="chat" class="tab-content active">
+            <div class="chat-container" id="chatContainer">
+                <div class="message ai-message">
+                    👋 Hello! I'm Kuldeep Behera, a BCA student passionate about technology and music. I can help with programming, web development, music, and general questions. What would you like to know?
+                </div>
+            </div>
+
+            <div class="loading" id="loading">
+                🤔 Thinking...
+            </div>
+
+            <div class="file-upload">
+                <input type="file" id="fileInput" class="file-input" accept="image/*,video/*,audio/*,.pdf,.txt,.doc,.docx">
+                <small>📎 Optional: Upload an image, video, audio, or document for analysis</small>
+            </div>
+
+            <div class="input-container">
+                <input type="text" class="input-field" id="promptInput" placeholder="Ask me anything..." onkeypress="handleKeyPress(event)">
+                <button class="send-button" id="sendButton" onclick="sendMessage()">Send</button>
+            </div>
+
+            <div class="examples">
+                <h3>💡 Try these examples:</h3>
+                <button class="example-button" onclick="setPrompt('Tell me about your YouTube channel')">About YouTube Channel</button>
+                <button class="example-button" onclick="setPrompt('What programming languages do you know?')">Programming Skills</button>
+                <button class="example-button" onclick="setPrompt('How do you make technology accessible for blind users?')">Accessibility Tech</button>
+                <button class="example-button" onclick="setPrompt('Write a Python function to reverse a string')">Code Example</button>
+                <button class="example-button" onclick="setPrompt('What are the latest tech news?')">Latest News</button>
+            </div>
+        </div>
+
+        <!-- TTS Tab -->
+        <div id="tts" class="tab-content">
+            <div class="api-info">
+                <h3>🎵 Text-to-Speech API</h3>
+                <p><strong>Endpoint:</strong> <code>/tts?text=your_text&voice=voice_name&style=style_name</code></p>
+                <p><strong>Get Voices:</strong> <code>/tts?voice=list</code></p>
+                <p><strong>Get Styles:</strong> <code>/tts?style=list</code></p>
+            </div>
+
+            <div class="tts-controls">
+                <div class="form-group">
+                    <label for="ttsText">Text to Convert:</label>
+                    <textarea id="ttsText" rows="4" placeholder="Enter text to convert to speech..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="voiceSelect">Voice:</label>
+                    <select id="voiceSelect">
+                        <option value="Kore">Kore (Firm)</option>
+                        <option value="Puck">Puck (Upbeat)</option>
+                        <option value="Zephyr">Zephyr (Bright)</option>
+                        <option value="Charon">Charon (Informative)</option>
+                        <option value="Fenrir">Fenrir (Excitable)</option>
+                        <option value="Leda">Leda (Youthful)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="styleSelect">Style:</label>
+                    <select id="styleSelect">
+                        <option value="normal">Normal</option>
+                        <option value="cheerful">Cheerful</option>
+                        <option value="excited">Excited</option>
+                        <option value="calm">Calm</option>
+                        <option value="professional">Professional</option>
+                        <option value="friendly">Friendly</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <button class="send-button" onclick="generateSpeech()" style="margin-top: 25px;">🎵 Generate Speech</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- File Upload Tab -->
+        <div id="upload" class="tab-content">
+            <div class="api-info">
+                <h3>📁 File Upload & Analysis</h3>
+                <p>Upload files along with your questions to get AI-powered analysis and descriptions.</p>
+            </div>
+
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3>🖼️ Images</h3>
+                    <p>JPG, PNG, GIF, BMP, WebP</p>
+                    <p>Get descriptions, analysis, and answer questions about images</p>
+                </div>
+                <div class="feature-card">
+                    <h3>🎥 Videos</h3>
+                    <p>MP4, AVI, MOV, WMV, FLV, WebM</p>
+                    <p>Analyze video content and extract information</p>
+                </div>
+                <div class="feature-card">
+                    <h3>🎵 Audio</h3>
+                    <p>MP3, WAV, AAC, OGG, FLAC</p>
+                    <p>Transcribe and analyze audio content</p>
+                </div>
+                <div class="feature-card">
+                    <h3>📄 Documents</h3>
+                    <p>PDF, TXT, DOC, DOCX, RTF</p>
+                    <p>Extract text and answer questions about documents</p>
+                </div>
+            </div>
+
+            <div class="examples">
+                <h3>💡 Example Use Cases:</h3>
+                <button class="example-button" onclick="alert('Upload an image and ask: What do you see in this image?')">Image Description</button>
+                <button class="example-button" onclick="alert('Upload a document and ask: Summarize this document')">Document Summary</button>
+                <button class="example-button" onclick="alert('Upload audio and ask: What is being discussed in this audio?')">Audio Transcription</button>
+                <button class="example-button" onclick="alert('Upload a video and ask: Describe what happens in this video')">Video Analysis</button>
+            </div>
+        </div>
+
+        <!-- API Documentation Tab -->
+        <div id="api" class="tab-content">
+            <div class="api-info">
+                <h3>📡 API Endpoints</h3>
+                
+                <h4>1. Chat API</h4>
+                <p><strong>GET:</strong> <code>https://interestingtechforvi.onrender.com/chat?prompt=your_question</code></p>
+                <p><strong>POST:</strong> <code>https://interestingtechforvi.onrender.com/chat</code></p>
+                <p><strong>Body:</strong> <code>{"prompt": "your_question"}</code></p>
+                <p><strong>With File:</strong> Form-data with 'prompt' and 'file' fields</p>
+                
+                <h4>2. Text-to-Speech API</h4>
+                <p><strong>GET:</strong> <code>https://interestingtechforvi.onrender.com/tts?text=hello&voice=Kore&style=cheerful</code></p>
+                <p><strong>List Voices:</strong> <code>https://interestingtechforvi.onrender.com/tts?voice=list</code></p>
+                <p><strong>List Styles:</strong> <code>https://interestingtechforvi.onrender.com/tts?style=list</code></p>
+                
+                <h4>3. Supported Files API</h4>
+                <p><strong>GET:</strong> <code>https://interestingtechforvi.onrender.com/supported-files</code></p>
+                
+                <h4>4. Health Check</h4>
+                <p><strong>GET:</strong> <code>https://interestingtechforvi.onrender.com/health</code></p>
+            </div>
+
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3>🔄 API Key Rotation</h3>
+                    <p>Automatic failover between multiple Gemini API keys for high availability</p>
+                </div>
+                <div class="feature-card">
+                    <h3>🧠 Intelligent Routing</h3>
+                    <p>Automatically routes to Perplexity for real-time info and Claude for coding</p>
+                </div>
+                <div class="feature-card">
+                    <h3>🎭 Persona Mode</h3>
+                    <p>Responds as Kuldeep Behera with authentic personality and background</p>
+                </div>
+                <div class="feature-card">
+                    <h3>🌐 CORS Enabled</h3>
+                    <p>Works from any website or application without restrictions</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const chatContainer = document.getElementById('chatContainer');
+        const promptInput = document.getElementById('promptInput');
+        const sendButton = document.getElementById('sendButton');
+        const loading = document.getElementById('loading');
+        const fileInput = document.getElementById('fileInput');
+
+        function showTab(tabName) {
+            // Hide all tab contents
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(content => content.classList.remove('active'));
+
+            // Remove active class from all tabs
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+
+            // Show selected tab content
+            document.getElementById(tabName).classList.add('active');
+
+            // Add active class to clicked tab
+            event.target.classList.add('active');
+        }
+
+        function addMessage(content, isUser = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user-message' : 'ai-message'}`;
+            messageDiv.innerHTML = content.replace(/\n/g, '<br>');
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function setPrompt(text) {
+            promptInput.value = text;
+            promptInput.focus();
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        async function sendMessage() {
+            const prompt = promptInput.value.trim();
+            if (!prompt) return;
+
+            // Add user message
+            addMessage(prompt, true);
+            promptInput.value = '';
+            
+            // Show loading
+            sendButton.disabled = true;
+            loading.style.display = 'block';
+
+            try {
+                const formData = new FormData();
+                formData.append('prompt', prompt);
+                
+                // Add file if selected
+                if (fileInput.files[0]) {
+                    formData.append('file', fileInput.files[0]);
+                    addMessage(`📎 File uploaded: ${fileInput.files[0].name}`, true);
+                }
+
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    addMessage(data.response);
+                } else {
+                    addMessage(`❌ Error: ${data.error || 'Something went wrong'}`);
+                }
+            } catch (error) {
+                addMessage(`❌ Network Error: ${error.message}`);
+            } finally {
+                // Hide loading and clear file input
+                sendButton.disabled = false;
+                loading.style.display = 'none';
+                fileInput.value = '';
+                promptInput.focus();
+            }
+        }
+
+        async function generateSpeech() {
+            const text = document.getElementById('ttsText').value.trim();
+            const voice = document.getElementById('voiceSelect').value;
+            const style = document.getElementById('styleSelect').value;
+
+            if (!text) {
+                alert('Please enter text to convert to speech');
+                return;
+            }
+
+            try {
+                const url = `/tts?text=${encodeURIComponent(text)}&voice=${voice}&style=${style}`;
+                window.open(url, '_blank');
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+            }
+        }
+
+        // Focus on input when page loads
+        window.onload = function() {
+            promptInput.focus();
+        };
+    </script>
+</body>
+</html>
+
