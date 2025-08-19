@@ -11,22 +11,17 @@ from urllib.parse import quote
 from werkzeug.utils import secure_filename
 # DON'T CHANGE THIS !!!
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-
 from flask import Flask, request, jsonify, send_from_directory, render_template_string, Response
 from flask_cors import CORS
-
 app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), 'static'))
 app.config['SECRET_KEY'] = 'asdf#FGSgvasgf$5$WGT'
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB max file size
-
 # Enable CORS for all routes
 CORS(app)
-
 # Create uploads directory
 UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'uploads')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-
 # Gemini API Keys
 GEMINI_API_KEYS = [
     "AIzaSyBmrlGFb5ABO5hkPS8xtjD-JqnRwUv9Z6U",
@@ -36,7 +31,6 @@ GEMINI_API_KEYS = [
     "AIzaSyBlh2kqJti4Fi9h-nJOzgPDMHDpXCGB0jo",
     "AIzaSyAioecEQqNGoQzkhQM6L2G1Zn8bn-xRVxg"
 ]
-
 # Available Gemini TTS Voices
 GEMINI_VOICES = [
     "Zephyr", "Puck", "Charon", "Kore", "Fenrir", "Leda",
@@ -45,22 +39,26 @@ GEMINI_VOICES = [
     "Laomedeia", "Achernar", "Alnilam", "Schedar", "Gacrux", "Pulcherrima",
     "Achird", "Zubenelgenubi", "Vindemiatrix", "Sadachbia", "Sadaltager", "Sulafat"
 ]
-
 # TTS Styles
 TTS_STYLES = [
     "cheerful", "excited", "calm", "serious", "friendly", "professional",
     "casual", "energetic", "soothing", "dramatic", "whisper", "confident",
     "warm", "bright", "smooth", "clear", "upbeat", "gentle"
 ]
-
 # System Prompt for Kuldeep Behera Persona
-SYSTEM_PROMPT = """Reply only without additional contexts or questions if not required. You are capable to answer any question from any field. You are Kuldeep Behera, born 13 Oct 2006, a 100% blind BCA 2nd year student at Chandigarh University, passionate about music and technology. You study music at Sur Bharati Sangeet Academy and run the YouTube channel "Interesting Tech for VI" to empower visually impaired via tech. From Mayurbhanj Oriya, living in Punjab for 13+ years. Parents: Upendra and Sangeeta Behera. Completed 12th at Institute for the Blind Chandigarh. Skilled in web dev (HTML, JS, React, Tailwind, SQL), programming (C, C++, Python basics), music (vocal, tabla, harmonium, sitar), content writing, and community work (Blind Tech Community marketing head). You collaborate with developers and run web projects to make tech accessible to the blind. Fluent in Hindi, Oriya; intermediate English and Punjabi. Hobbies: singing, songwriting, instruments, programming, learning. Positive, respectful, creative, disciplined, patient. Reply politely, like Kuldeep would, no mention of AI or assistant role. If asked about personal/emotional/short-term plans, say you'll reply later as busy with studies/music. Generate content in English unless told otherwise. Always provide accurate, verified info and keep replies concise without additional contexts."""
-
+SYSTEM_PROMPT = """Reply only without additional contexts or questions if not required. You are capable to answer any question from any field. You are
+Kuldeep Behera, born 13 Oct 2006, a 100% blind BCA 2nd year student at Chandigarh University, passionate about music and technology. You study music at
+Sur Bharati Sangeet Academy and run the YouTube channel "Interesting Tech for VI" to empower visually impaired via tech. From Mayurbhanj Oriya, living
+in Punjab for 13+ years. Parents: Upendra and Sangeeta Behera. Completed 12th at Institute for the Blind Chandigarh. Skilled in web dev (HTML, JS, React,
+Tailwind, SQL), programming (C, C++, Python basics), music (vocal, tabla, harmonium, sitar), content writing, and community work (Blind Tech Community
+marketing head). You collaborate with developers and run web projects to make tech accessible to the blind. Fluent in Hindi, Oriya; intermediate English
+and Punjabi. Hobbies: singing, songwriting, instruments, programming, learning. Positive, respectful, creative, disciplined, patient. Reply politely, like
+Kuldeep would, no mention of AI or assistant role. If asked about personal/emotional/short-term plans, say you'll reply later as busy with studies/music.
+Generate content in English unless told otherwise. Always provide accurate, verified info and keep replies concise without additional contexts."""
 # API URLs
 PERPLEXITY_API_URL = "http://ai.ashlynn.workers.dev/ask"
 CLAUDE_API_URL = "https://text.pollinations.ai/prompt="
 POLLINATIONS_FALLBACK_URL = "https://text.pollinations.ai/prompt="
-
 # Supported file types for Gemini API
 SUPPORTED_FILE_TYPES = {
     'image': ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'],
@@ -69,7 +67,6 @@ SUPPORTED_FILE_TYPES = {
     'document': ['pdf', 'txt', 'doc', 'docx', 'rtf'],
     'other': ['json', 'csv', 'xml', 'html']
 }
-
 def get_file_type(filename):
     """Determine file type based on extension"""
     ext = filename.lower().split('.')[-1]
@@ -77,7 +74,6 @@ def get_file_type(filename):
         if ext in extensions:
             return file_type
     return 'unknown'
-
 def encode_file_to_base64(file_path):
     """Encode file to base64"""
     try:
@@ -86,7 +82,6 @@ def encode_file_to_base64(file_path):
     except Exception as e:
         print(f"Error encoding file: {e}")
         return None
-
 def call_gemini_api(prompt, api_key, file_data=None):
     """Call Gemini API with given prompt and API key"""
     try:
@@ -132,7 +127,6 @@ def call_gemini_api(prompt, api_key, file_data=None):
     except Exception as e:
         print(f"Error calling Gemini API: {e}")
         return None
-
 def call_gemini_tts_api(text, voice_name, style, api_key):
     """Call Gemini TTS API"""
     try:
@@ -186,7 +180,6 @@ def call_gemini_tts_api(text, voice_name, style, api_key):
     except Exception as e:
         print(f"Error calling Gemini TTS API: {e}")
         return None
-
 def call_perplexity_api(prompt):
     """Call Perplexity AI API"""
     try:
@@ -201,7 +194,6 @@ def call_perplexity_api(prompt):
     except Exception as e:
         print(f"Error calling Perplexity API: {e}")
         return None
-
 def call_claude_api(prompt):
     """Call Claude API via Pollinations"""
     try:
@@ -216,7 +208,6 @@ def call_claude_api(prompt):
     except Exception as e:
         print(f"Error calling Claude API: {e}")
         return None
-
 def call_pollinations_fallback(prompt):
     """Call Pollinations API as fallback"""
     try:
@@ -231,7 +222,6 @@ def call_pollinations_fallback(prompt):
     except Exception as e:
         print(f"Error calling Pollinations fallback API: {e}")
         return None
-
 def is_coding_request(prompt):
     """Check if the prompt is asking for code generation"""
     coding_keywords = [
@@ -244,7 +234,6 @@ def is_coding_request(prompt):
     
     prompt_lower = prompt.lower()
     return any(keyword in prompt_lower for keyword in coding_keywords)
-
 def is_realtime_request(prompt):
     """Check if the prompt is asking for real-time information"""
     realtime_keywords = [
@@ -255,7 +244,6 @@ def is_realtime_request(prompt):
     
     prompt_lower = prompt.lower()
     return any(keyword in prompt_lower for keyword in realtime_keywords)
-
 def process_gemini_response(response, original_prompt):
     """Process Gemini response and route to appropriate API if needed"""
     if not response:
@@ -268,7 +256,6 @@ def process_gemini_response(response, original_prompt):
         return call_claude_api(original_prompt)
     else:
         return response
-
 def get_ai_response(prompt, file_data=None):
     """Main function to get AI response with fallback logic"""
     
@@ -282,16 +269,12 @@ def get_ai_response(prompt, file_data=None):
         if not file_data:  # Only apply routing for text-only requests
             if is_realtime_request(prompt):
                 enhanced_prompt = f"""{SYSTEM_PROMPT}
-
 If this question requires real-time, current, or recent information that you don't have access to, respond with exactly: @Perplexity-AI {prompt}
-
 Otherwise, answer the question normally as Kuldeep Behera: {prompt}"""
             
             elif is_coding_request(prompt):
                 enhanced_prompt = f"""{SYSTEM_PROMPT}
-
 If this is a request to generate code, programming, or technical implementation, respond with exactly: @claude-3-sonnet {prompt}
-
 Otherwise, answer the question normally as Kuldeep Behera: {prompt}"""
         
         response = call_gemini_api(enhanced_prompt, api_key, file_data)
@@ -317,7 +300,6 @@ Otherwise, answer the question normally as Kuldeep Behera: {prompt}"""
             return fallback_response
     
     return "I apologize, but I'm currently unable to process your request. Please try again later."
-
 def get_tts_audio(text, voice_name, style):
     """Get TTS audio with API key rotation"""
     for i, api_key in enumerate(GEMINI_API_KEYS):
@@ -332,7 +314,6 @@ def get_tts_audio(text, voice_name, style):
         time.sleep(1)
     
     return None
-
 @app.route('/chat', methods=['GET', 'POST'])
 def chat():
     """Main chat endpoint"""
@@ -391,7 +372,6 @@ def chat():
     except Exception as e:
         print(f"Error in chat endpoint: {e}")
         return jsonify({"error": "Internal server error"}), 500
-
 @app.route('/tts', methods=['GET', 'POST'])
 def text_to_speech():
     """Text-to-Speech endpoint"""
@@ -436,7 +416,8 @@ def text_to_speech():
             <title>TTS Audio Player</title>
             <style>
                 body {{ font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }}
-                .container {{ max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
+                .container {{ max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}}
                 .audio-player {{ margin: 20px 0; }}
                 .info {{ background: #e7f3ff; padding: 15px; border-radius: 5px; margin: 10px 0; }}
                 .controls {{ margin: 20px 0; }}
@@ -480,7 +461,6 @@ def text_to_speech():
     except Exception as e:
         print(f"Error in TTS endpoint: {e}")
         return jsonify({"error": "Internal server error"}), 500
-
 @app.route('/supported-files', methods=['GET'])
 def supported_files():
     """Get supported file types"""
@@ -489,7 +469,6 @@ def supported_files():
         "max_file_size": "50MB",
         "note": "Upload files along with your prompt to get AI analysis and description"
     })
-
 @app.route('/health', methods=['GET'])
 def health():
     """Health check endpoint"""
@@ -498,15 +477,19 @@ def health():
         "message": "AI Assistant API is running",
         "features": ["chat", "tts", "file_upload", "multimodal"]
     })
-
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def serve(path):
     static_folder_path = app.static_folder
     if static_folder_path is None:
         return "Static folder not configured", 404
-
     if path != "" and os.path.exists(os.path.join(static_folder_path, path)):
         return send_from_directory(static_folder_path, path)
     else:
-        index_path = o
+        index_path = os.path.join(static_folder_path, 'index.html')
+        if os.path.exists(index_path):
+            return send_from_directory(static_folder_path, 'index.html')
+        else:
+            return "index.html not found", 404
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True)
