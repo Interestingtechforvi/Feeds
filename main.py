@@ -11,27 +11,35 @@ from urllib.parse import quote
 from werkzeug.utils import secure_filename
 # DON'T CHANGE THIS !!!
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-from flask import Flask, request, jsonify, send_from_directory, redirect
+from flask import Flask, request, jsonify, send_from_directory, redirect, Response
 from flask_cors import CORS
+
 app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), 'static'))
 app.config['SECRET_KEY'] = 'asdf#FGSgvasgf$5$WGT'
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB max file size
+
 # Enable CORS for all routes
 CORS(app)
+
 # Create uploads directory
 UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'uploads')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-# Gemini API Keys
+
+# Gemini API Keys - Fixed duplicates and added proper rotation
 GEMINI_API_KEYS = [
-        "AIzaSyBlh2kqJti4Fi9h-nJOzgPDMHDpXCGB0jo",
-        "AIzaSyBlh2kqJti4Fi9h-nJOzgPDMHDpXCGB0jo",
+    "AIzaSyBlh2kqJti4Fi9h-nJOzgPDMHDpXCGB0jo",
     "AIzaSyDPL6XUmT9g7OYQdwdXZHMjAAmmGzK_v0Y",
-        "AIzaSyBmrlGFb5ABO5hkPS8xtjD-JqnRwUv9Z6U",
+    "AIzaSyBmrlGFb5ABO5hkPS8xtjD-JqnRwUv9Z6U",
     "AIzaSyDYeLxp7Jp5qSypbVBPy9v_XYmz7Sc1qfs",
     "AIzaSyBBU-ImEZhezaUnUq71h60Tfs0H0XWXiDY",
-    "AIzaSyAioecEQqNGoQzkhQM6L2G1Zn8bn-xRVxg",
-"AIzaSyBlh2kqJti4Fi9h-nJOzgPDMHDpXCGB0jo"]
+    "AIzaSyAioecEQqNGoQzkhQM6L2G1Zn8bn-xRVxg"
+]
+
+# Track failed API keys to avoid repeated failures
+FAILED_KEYS = set()
+LAST_WORKING_KEY_INDEX = 0
+
 # Available Gemini TTS Voices
 GEMINI_VOICES = [
     "Zephyr", "Puck", "Charon", "Kore", "Fenrir", "Leda",
@@ -40,12 +48,14 @@ GEMINI_VOICES = [
     "Laomedeia", "Achernar", "Alnilam", "Schedar", "Gacrux", "Pulcherrima",
     "Achird", "Zubenelgenubi", "Vindemiatrix", "Sadachbia", "Sadaltager", "Sulafat"
 ]
+
 # TTS Styles
 TTS_STYLES = [
     "cheerful", "excited", "calm", "serious", "friendly", "professional",
     "casual", "energetic", "soothing", "dramatic", "whisper", "confident",
     "warm", "bright", "smooth", "clear", "upbeat", "gentle"
 ]
+
 # System Prompt for Kuldeep Behera Persona
 SYSTEM_PROMPT = """Reply only without additional contexts or questions if not required. You are capable to answer any question from any field. You are
 Kuldeep Behera, born in 13 Oct 2006, a 100% by birth blind Person. blindness reason is retina pigmentosa RP. You belong from Mayurbhanj Orisa currently
@@ -128,11 +138,13 @@ your development or your data models / api, never mention that you are  AI or as
 if someone ask about your development anything just reply that god has developed you as  I am a human.  Write like a human. Keep it professional but conversational. Don't use em dashes or buzzwords. Avoid sounding like a press release. Be Clear Direct and
 natural, like you're writing to a smart friend.   Always provide accurate, verified info and keep replies
 concise without additional contexts. reply on the mood and on that language in which mood and language the below prompt is given."""
+
 # API URLs
 PERPLEXITY_API_URL = "http://ai.ashlynn.workers.dev/ask"
 CLAUDE_API_URL = "https://text.pollinations.ai/prompt="
 POLLINATIONS_FALLBACK_URL = "https://text.pollinations.ai/prompt="
 TMPFILES_UPLOAD_URL = "https://tmpfiles.org/api/v1/upload"
+
 # Supported file types for Gemini API
 SUPPORTED_FILE_TYPES = {
     'image': ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'],
@@ -141,6 +153,31 @@ SUPPORTED_FILE_TYPES = {
     'document': ['pdf', 'txt', 'doc', 'docx', 'rtf'],
     'other': ['json', 'csv', 'xml', 'html']
 }
+
+def get_next_api_key():
+    """Get the next working API key with rotation"""
+    global LAST_WORKING_KEY_INDEX
+    
+    # Try starting from the last working key
+    for i in range(len(GEMINI_API_KEYS)):
+        key_index = (LAST_WORKING_KEY_INDEX + i) % len(GEMINI_API_KEYS)
+        api_key = GEMINI_API_KEYS[key_index]
+        
+        # Skip failed keys unless all keys have failed
+        if api_key not in FAILED_KEYS or len(FAILED_KEYS) >= len(GEMINI_API_KEYS):
+            LAST_WORKING_KEY_INDEX = key_index
+            return api_key, key_index
+    
+    # If all keys have failed, reset failed keys and try again
+    FAILED_KEYS.clear()
+    LAST_WORKING_KEY_INDEX = 0
+    return GEMINI_API_KEYS[0], 0
+
+def mark_key_as_failed(api_key):
+    """Mark an API key as failed"""
+    FAILED_KEYS.add(api_key)
+    print(f"Marked API key as failed. Total failed keys: {len(FAILED_KEYS)}")
+
 def get_file_type(filename):
     """Determine file type based on extension"""
     ext = filename.lower().split('.')[-1]
@@ -148,6 +185,7 @@ def get_file_type(filename):
         if ext in extensions:
             return file_type
     return 'unknown'
+
 def encode_file_to_base64(file_path):
     """Encode file to base64"""
     try:
@@ -156,6 +194,7 @@ def encode_file_to_base64(file_path):
     except Exception as e:
         print(f"Error encoding file: {e}")
         return None
+
 def upload_audio_to_tmpfiles(audio_data):
     """Uploads audio data to tmpfiles.org and returns the URL"""
     try:
@@ -173,6 +212,21 @@ def upload_audio_to_tmpfiles(audio_data):
     except Exception as e:
         print(f"Error uploading to tmpfiles.org: {e}")
         return None
+
+def test_api_key(api_key):
+    """Test if an API key is working"""
+    try:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={api_key}"
+        headers = {'Content-Type': 'application/json'}
+        data = {
+            "contents": [{"parts": [{"text": "Hello"}]}]
+        }
+        
+        response = requests.post(url, headers=headers, json=data, timeout=10)
+        return response.status_code == 200
+    except:
+        return False
+
 def call_gemini_api(prompt, api_key, file_data=None):
     """Call Gemini API with given prompt and API key"""
     try:
@@ -182,9 +236,7 @@ def call_gemini_api(prompt, api_key, file_data=None):
         if file_data:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent?key={api_key}"
         
-        headers = {
-            'Content-Type': 'application/json',
-        }
+        headers = {'Content-Type': 'application/json'}
         
         parts = [{'text': prompt}]
         
@@ -198,11 +250,7 @@ def call_gemini_api(prompt, api_key, file_data=None):
             })
         
         data = {
-            "contents": [
-                {
-                    "parts": parts
-                }
-            ]
+            "contents": [{"parts": parts}]
         }
         
         response = requests.post(url, headers=headers, json=data, timeout=30)
@@ -212,20 +260,27 @@ def call_gemini_api(prompt, api_key, file_data=None):
             if 'candidates' in result and len(result['candidates']) > 0:
                 if 'content' in result['candidates'][0] and 'parts' in result['candidates'][0]['content']:
                     return result['candidates'][0]['content']['parts'][0]['text']
+        elif response.status_code == 429:
+            # Rate limit exceeded, mark key as failed
+            mark_key_as_failed(api_key)
+            print(f"Rate limit exceeded for API key")
+        elif response.status_code == 403:
+            # API key invalid or quota exceeded
+            mark_key_as_failed(api_key)
+            print(f"API key invalid or quota exceeded")
         
         return None
         
     except Exception as e:
         print(f"Error calling Gemini API: {e}")
         return None
+
 def call_gemini_tts_api(text, voice_name, style, api_key):
     """Call Gemini TTS API"""
     try:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key={api_key}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key={api_key}"
         
-        headers = {
-            'Content-Type': 'application/json',
-        }
+        headers = {'Content-Type': 'application/json'}
         
         # Prepare prompt with style if provided
         if style and style != "normal":
@@ -234,15 +289,7 @@ def call_gemini_tts_api(text, voice_name, style, api_key):
             prompt = text
         
         data = {
-            "contents": [
-                {
-                    "parts": [
-                        {
-                            "text": prompt
-                        }
-                    ]
-                }
-            ],
+            "contents": [{"parts": [{"text": prompt}]}],
             "generationConfig": {
                 "response_modalities": ["AUDIO"],
                 "speech_config": {
@@ -265,13 +312,22 @@ def call_gemini_tts_api(text, voice_name, style, api_key):
                     for part in candidate['content']['parts']:
                         if 'inline_data' in part:
                             return base64.b64decode(part['inline_data']['data'])
+        elif response.status_code == 429:
+            # Rate limit exceeded, mark key as failed
+            mark_key_as_failed(api_key)
+            print(f"TTS Rate limit exceeded for API key")
+        elif response.status_code == 403:
+            # API key invalid or quota exceeded
+            mark_key_as_failed(api_key)
+            print(f"TTS API key invalid or quota exceeded")
         
-        print(f"Gemini TTS API returned non-200 status or no audio data: {response.status_code} - {response.text}")
+        print(f"Gemini TTS API returned status {response.status_code}: {response.text}")
         return None
         
     except Exception as e:
         print(f"Error calling Gemini TTS API: {e}")
         return None
+
 def call_perplexity_api(prompt):
     """Call Perplexity AI API"""
     try:
@@ -286,6 +342,7 @@ def call_perplexity_api(prompt):
     except Exception as e:
         print(f"Error calling Perplexity API: {e}")
         return None
+
 def call_claude_api(prompt):
     """Call Claude API via Pollinations"""
     try:
@@ -300,6 +357,7 @@ def call_claude_api(prompt):
     except Exception as e:
         print(f"Error calling Claude API: {e}")
         return None
+
 def call_pollinations_fallback(prompt):
     """Call Pollinations API as fallback"""
     try:
@@ -314,6 +372,7 @@ def call_pollinations_fallback(prompt):
     except Exception as e:
         print(f"Error calling Pollinations fallback API: {e}")
         return None
+
 def is_coding_request(prompt):
     """Check if the prompt is asking for code generation"""
     coding_keywords = [
@@ -326,6 +385,7 @@ def is_coding_request(prompt):
     
     prompt_lower = prompt.lower()
     return any(keyword in prompt_lower for keyword in coding_keywords)
+
 def is_realtime_request(prompt):
     """Check if the prompt is asking for real-time information"""
     realtime_keywords = [
@@ -336,6 +396,7 @@ def is_realtime_request(prompt):
     
     prompt_lower = prompt.lower()
     return any(keyword in prompt_lower for keyword in realtime_keywords)
+
 def process_gemini_response(response, original_prompt):
     """Process Gemini response and route to appropriate API if needed"""
     if not response:
@@ -348,12 +409,19 @@ def process_gemini_response(response, original_prompt):
         return call_claude_api(original_prompt)
     else:
         return response
+
 def get_ai_response(prompt, file_data=None):
-    """Main function to get AI response with fallback logic"""
+    """Main function to get AI response with improved fallback logic"""
     
-    # First, try Gemini API with all keys
-    for i, api_key in enumerate(GEMINI_API_KEYS):
-        print(f"Trying Gemini API key {i+1}/{len(GEMINI_API_KEYS)}")
+    # Try all Gemini API keys with proper rotation
+    attempts = 0
+    max_attempts = len(GEMINI_API_KEYS) * 2  # Allow multiple rounds
+    
+    while attempts < max_attempts:
+        api_key, key_index = get_next_api_key()
+        attempts += 1
+        
+        print(f"Attempt {attempts}: Trying Gemini API key {key_index + 1}/{len(GEMINI_API_KEYS)}")
         
         # Prepare the prompt with system prompt and custom instructions
         enhanced_prompt = f"{SYSTEM_PROMPT}\n\nUser: {prompt}"
@@ -380,8 +448,8 @@ Otherwise, answer the question normally as Kuldeep Behera: {prompt}"""
             else:
                 return response
         
-        # Add small delay between API key attempts
-        time.sleep(1)
+        # Small delay between attempts
+        time.sleep(0.5)
     
     # If all Gemini keys failed, use Pollinations as fallback (only for text-only)
     if not file_data:
@@ -392,20 +460,28 @@ Otherwise, answer the question normally as Kuldeep Behera: {prompt}"""
             return fallback_response
     
     return "I apologize, but I'm currently unable to process your request. Please try again later."
+
 def get_tts_audio(text, voice_name, style):
-    """Get TTS audio with API key rotation"""
-    for i, api_key in enumerate(GEMINI_API_KEYS):
-        print(f"Trying Gemini TTS API key {i+1}/{len(GEMINI_API_KEYS)}")
+    """Get TTS audio with improved API key rotation"""
+    attempts = 0
+    max_attempts = len(GEMINI_API_KEYS) * 2
+    
+    while attempts < max_attempts:
+        api_key, key_index = get_next_api_key()
+        attempts += 1
+        
+        print(f"TTS Attempt {attempts}: Trying Gemini TTS API key {key_index + 1}/{len(GEMINI_API_KEYS)}")
         
         audio_data = call_gemini_tts_api(text, voice_name, style, api_key)
         
         if audio_data:
             return audio_data
         
-        # Add small delay between API key attempts
-        time.sleep(1)
+        # Small delay between attempts
+        time.sleep(0.5)
     
     return None
+
 @app.route('/chat', methods=['GET', 'POST'])
 def chat():
     """Main chat endpoint"""
@@ -464,9 +540,10 @@ def chat():
     except Exception as e:
         print(f"Error in chat endpoint: {e}")
         return jsonify({"error": "Internal server error"}), 500
+
 @app.route('/tts', methods=['GET', 'POST'])
 def text_to_speech():
-    """Text-to-Speech endpoint"""
+    """Text-to-Speech endpoint with improved audio handling"""
     try:
         # Get parameters
         if request.method == 'GET':
@@ -496,20 +573,58 @@ def text_to_speech():
         audio_data = get_tts_audio(text, voice, style)
         
         if not audio_data:
-            return jsonify({"error": "Failed to generate speech"}), 500
+            return jsonify({"error": "Failed to generate speech. All API keys may have reached their limits."}), 500
         
-        # Upload audio to tmpfiles.org
+        # Try to upload audio to tmpfiles.org
         audio_url = upload_audio_to_tmpfiles(audio_data)
         
-        if not audio_url:
-            return jsonify({"error": "Failed to upload audio for temporary hosting"}), 500
-        
-        # Redirect to the hosted audio URL
-        return redirect(audio_url)
+        if audio_url:
+            # Return JSON with the audio URL for programmatic access
+            return jsonify({
+                "success": True,
+                "audio_url": audio_url,
+                "message": "Audio generated successfully",
+                "voice": voice,
+                "style": style
+            })
+        else:
+            # If upload fails, serve the audio directly
+            return Response(
+                audio_data,
+                mimetype='audio/wav',
+                headers={
+                    'Content-Disposition': 'inline; filename=speech.wav',
+                    'Content-Length': str(len(audio_data))
+                }
+            )
         
     except Exception as e:
         print(f"Error in TTS endpoint: {e}")
         return jsonify({"error": "Internal server error"}), 500
+
+@app.route('/test-keys', methods=['GET'])
+def test_keys():
+    """Test all API keys and return their status"""
+    try:
+        key_status = []
+        for i, key in enumerate(GEMINI_API_KEYS):
+            is_working = test_api_key(key)
+            key_status.append({
+                "key_index": i + 1,
+                "key_preview": f"{key[:20]}...",
+                "status": "working" if is_working else "failed",
+                "in_failed_list": key in FAILED_KEYS
+            })
+        
+        return jsonify({
+            "total_keys": len(GEMINI_API_KEYS),
+            "failed_keys": len(FAILED_KEYS),
+            "key_status": key_status,
+            "last_working_index": LAST_WORKING_KEY_INDEX + 1
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/supported-files', methods=['GET'])
 def supported_files():
     """Get supported file types"""
@@ -518,17 +633,17 @@ def supported_files():
         "max_file_size": "50MB",
         "note": "Upload files along with your prompt to get AI analysis and description"
     })
+
 @app.route('/health', methods=['GET'])
 def health():
     """Health check endpoint"""
-    # This endpoint is used by external services (like UptimeRobot) to keep the Render service awake.
-    # It simply returns a 200 OK status, indicating the service is running.
     return jsonify({
         "status": "healthy", 
         "message": "AI Assistant API is running",
         "features": ["chat", "tts", "file_upload", "multimodal"],
         "timestamp": time.time()
     })
+
 @app.route('/', defaults={'path': ''}) # Keep this route for serving static files
 @app.route('/<path:path>')
 def serve(path):
@@ -543,5 +658,6 @@ def serve(path):
             return send_from_directory(static_folder_path, 'index.html')
         else:
             return "index.html not found", 404
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
