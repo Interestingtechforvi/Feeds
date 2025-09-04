@@ -24,9 +24,9 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 # Gemini API Keys
 GEMINI_API_KEYS = [
-    "AIzaSyBmrlGFb5ABO5hkPS8xtjD-JqnRwUv9Z6U",
+        "AIzaSyDPL6XUmT9g7OYQdwdXZHMjAAmmGzK_v0Y",
+        "AIzaSyBmrlGFb5ABO5hkPS8xtjD-JqnRwUv9Z6U",
     "AIzaSyDYeLxp7Jp5qSypbVBPy9v_XYmz7Sc1qfs",
-    "AIzaSyDPL6XUmT9g7OYQdwdXZHMjAAmmGzK_v0Y",
     "AIzaSyBBU-ImEZhezaUnUq71h60Tfs0H0XWXiDY",
     "AIzaSyBlh2kqJti4Fi9h-nJOzgPDMHDpXCGB0jo",
     "AIzaSyAioecEQqNGoQzkhQM6L2G1Zn8bn-xRVxg"
