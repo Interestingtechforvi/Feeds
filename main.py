@@ -31,6 +31,7 @@ GEMINI_API_KEYS = [
     "AIzaSyBlh2kqJti4Fi9h-nJOzgPDMHDpXCGB0jo",
     "AIzaSyDPL6XUmT9g7OYQdwdXZHMjAAmmGzK_v0Y",
     "AIzaSyBmrlGFb5ABO5hkPS8xtjD-JqnRwUv9Z6U",
+    "AIzaSyCkbOolYNmf0l9C8wHOsV3qp9gmNLdEhxY",
     "AIzaSyDYeLxp7Jp5qSypbVBPy9v_XYmz7Sc1qfs",
     "AIzaSyBBU-ImEZhezaUnUq71h60Tfs0H0XWXiDY",
     "AIzaSyAioecEQqNGoQzkhQM6L2G1Zn8bn-xRVxg"
